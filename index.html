@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title>Mapbox Heatmap</title>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        .button-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .button-container button { margin: 10px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #map { position: absolute; top: 100px; bottom: 100px; width: 100%; }
+        #sliderContainer { position: absolute; bottom: 25px; left: 5%; width: 90%; }
+        #choroplethButton {
+            margin: 20px; /* Increase the margin for button spacing */
+            padding: 15px 30px; /* Increase button padding for larger size */
+            font-size: 20px; /* Adjust font size */
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            left: 35%; /* Adjust the left value to shift the SVG to the left */
+        }
+        body.no-background-image {
+            background-image: none;
+        }
+        body {
+            margin-bottom: 800px;
+            padding: 0;
+            /* Set the background image and configure its display */
+            background-image: url('https://storage.googleapis.com/geojson360/mountains.jpeg');
+            background-size: cover;
+        }
+        svg {
+            position: absolute;
+            top: 0;
+            left: 15%; /* Adjust the left value to shift the SVG to the left */
+        }
+        input[type='range'] { width: 100%; }
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #000;
+            margin-top: 10px;
+        }
+        .slider-labels span {
+            flex: 0;
+            text-align: center;
+            position: relative;
+            color: #000;
+        }
+        .slider-labels span::after {
+            content: attr(data-label);
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #000;
+            font-size: 14px;
+        }
+        .slider-title {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 5px;
+            color: #000;
+        }
+        .legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 16px;
+            line-height: 1.5;
+            display: none;
+        }
+        .dashboard-title {
+            text-align: center;
+            font-size: 48px;
+            margin-top: 20px;
+            color: #FFFFFF;
+        }
+        .available-views-text {
+            text-align: center;
+            font-size: 20px;
+            margin-top: 420px;
+            color: #FFFFFF;
+        }
+        .button-container {
+            /* Other styles for button container */
+            text-align: center; /* Center-align the content */
+        }
+        .note-container {
+            position: absolute;
+            top: 5px; /* Adjust the distance from the top */
+            left: 10px; /* Adjust the distance from the left */
+        }
+        .note-text {
+            font-size: 20px;
+            color: #000000; /* Change the text color as needed */
+            /* Add any other styling you prefer */
+        }
+        .legend h3 { margin-top: 5px; font-size: 20px;}
+        .legend p { margin: 0; }
+        .legend span { display: inline-block; width: 15px; height: 15px; margin-right: 5px; vertical-align: middle; }
+        .homepage-button { position: absolute; top: 10px; right: 10px; display: none; }
+        .homepage-button button { padding: 8px 30px; font-size: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="note-container">
+        <p class="note-text" style="display: none;">Note: the heatmap may crash or take some time to render due to Google Cloud URL fetch rate limits.</p>
+    </div>
+    <div class="button-container">
+        <button id="heatmapButton">Mapbox Heatmap</button>
+        <button id="co2button">CO2 Chroropleth Map</button>
+    </div>
+    <h1 class="dashboard-title">Climate Change Visualization Dashboard</h1>
+
+    <div class="available-views-text">Available Views:</div>
+    <button id="choroplethButton" style="display: none;">Switch Map View</button>
+    <div id='map' style="display: none;"></div>
+    <div id='sliderContainer' style="display: none;">
+        <h3 class='slider-title'>Time Slider</h3>
+        <input type='range' min='2018' max='2023' step='1' value='2018' id='yearSlider' />
+        <div class='slider-labels'>
+            <span data-label='2018'></span>
+            <span data-label='2019'></span>
+            <span data-label='2020'></span>
+            <span data-label='2021'></span>
+            <span data-label='2022'></span>
+            <span data-label='2023'></span>
+        </div>
+    </div>
+    <div class="legend">
+        <h3>Total CO2 Emissions (in megatons)</h3>
+        <p><span style="background-color: rgb(237,248,233);"></span>0.00 - 16.19</p>
+        <p><span style="background-color: rgb(186,228,179);"></span>16.19 - 32.38 </p>
+        <p><span style="background-color: rgb(116,196,118);"></span>32.38 - 48.57 </p>
+        <p><span style="background-color: rgb(49,163,84);"></span>48.57 - 64.76 </p>
+        <p><span style="background-color: rgb(0,109,44);"></span>64.76 - 80.95 </p>
+        <p><span style="background-color: rgb(0,68,27);"></span> 80.95+ </p>
+        <!-- Add more legend entries based on your color scale -->
+    </div>
+        <div class="homepage-button">
+        <button>Back to Dashboard</button>
+    </div>
+    <script src='mapbox.js'></script>
+</body>
+</html>
