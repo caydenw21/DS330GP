@@ -1,4 +1,4 @@
-mapboxgl.accessToken = 'pk.eyJ1IjoiY2F5ZGVud2lsc29uMSIsImEiOiJjbHBmaTh3Z3ExY2djMmpuc3FlOGYyZmN3In0.EvhX-7yjAX83ok_jHPtfqA';
+mapboxgl.accessToken = '';
 
 //Retrieve HTML elements for functionalities 
 const mapDiv = document.getElementById('map');
